@@ -5,7 +5,9 @@ const app = express();
 // const db = require('./db');
 const db = require('./database');
 
-const userRoutes = require('./routes/api/users')
+const routes = require('./routes/api');
+
+require('./config/passport');
 
 const router = express.Router();
 
@@ -37,9 +39,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 // API routes
 // app.use('/api/users', require('./routes/api/users'));
 // app.use('/api/bookings', require('./routes/api/bookings'));
-app.use('/api/users', router);
+app.use('/api', router);
 
-userRoutes(router)
+routes(router)
 
 app.listen(PORT, (req, res) => {
     console.log(`Server started on port ${PORT}`)

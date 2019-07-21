@@ -1,36 +1,67 @@
-const Users = require('../services/userDatabseService');
+const Users = require('../models/UserModel');
+const passport = require('passport');
+const auth = require('../routes/auth');
 
 exports.createUser = function (req, res, next) {
-    var user = {
+    var userData = {
         name: req.body.name,
         email: req.body.email,
         phone: req.body.phone,
+        password: req.body.password,
         moviesWatched: [],
         active: true,
     }
 
-    Users.create(user, function(err, user) {
+    Users.getByEmail({email: req.body.email}, function(err, user) {
         if(err) {
             res.json({
                 error: err
             })
+        } else if (user.length < 1) {
+            const finalUser = new Users(userData);
+            finalUser.setPassword(user.password);
+            return finalUser.save()
+            .then(() => res.json({
+                message: "User created successfully",
+                user: finalUser.toAuthJSON()
+            }));
+        } else {
+            res.json({
+                message: "This user already exits"
+            })
         }
-        res.json({
-            message: "User created successfully"
-        })
-    })
+})
+}
+
+exports.loginUser = function (req, res, next) {
+    const { body: { user } } = req;
+    return passport.authenticate('local', (err, passportUser, info) => {
+        if(err) {
+            return next(err);
+        } else if (passportUser) {
+            const user = passportUser;
+            user.token = passportUser.generateJWT();
+            res.json({
+                message: "Successfully logged in!",
+                user: user.toAuthJSON()
+            })
+        } else {
+            return res.status(400).info;
+        }
+     })(req, res, next)
 }
 
 exports.getUsers = function(req, res, next) {
-    Users.get({}, function(err, users) {
+    Users.getUsers({}, function(err, users) {
         if(err) {
             res.json({
                 error: err
             })
+        } else {
+            res.json({
+                users: users
+            })
         }
-        res.json({
-            users: users
-        })
     })
 }
 
@@ -40,10 +71,11 @@ exports.getUser = function(req, res, next) {
             res.json({
                 error: err
             })
+        } else {
+            res.json({
+                user: users
+            })
         }
-        res.json({
-            users: users
-        })
     })
 }
 
@@ -61,10 +93,12 @@ exports.updateUser = function (req, res, next) {
             res.json({
                 error: err
             })
+        } else {
+            res.json({
+                message: "User updated successfully",
+                user: user
+            })
         }
-        res.json({
-            message: "User updated successfully"
-        })
     })
 }
 
@@ -74,9 +108,10 @@ exports.removeUser = function(req, res, next) {
             res.json({
                 error: err
             })
+        } else {
+            res.json({
+                message: "User deleted successfully"
+            })
         }
-        res.json({
-            message: "Hero deleted successfully"
-        })
     })
 }
